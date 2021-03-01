@@ -1,0 +1,10 @@
+{
+  "stylelintIntegration": true,
+  "tslintIntegration": true,
+  "tabWidth": 2,
+  "singleQuote": true,
+  "jsxSingleQuote": true,
+  "semi": true,
+  "bracketSpacing": true,
+  "jsxBracketSameLine": false
+}

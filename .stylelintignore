@@ -1,0 +1,14 @@
+
+*.min.css
+
+/node_modules
+
+*.js
+*.jpg
+*.woff
+*.png
+*.svg
+
+/test/
+/dist/
+

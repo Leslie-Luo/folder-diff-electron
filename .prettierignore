@@ -1,0 +1,8 @@
+/**/libs/**
+dist/
+lib/
+src/assets/img/
+src/assets/icons/
+**/*.png
+**/*.jpg
+**/*.jpeg

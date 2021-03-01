@@ -13,6 +13,6 @@
 
 <script>
 export default {
-  name: 'HelloWorld'
+  name: 'Draging'
 };
 </script>
