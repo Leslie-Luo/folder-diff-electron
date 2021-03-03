@@ -18,7 +18,7 @@ module.exports = {
         multiline: 'always'
       }
     ],
-    indent: ['error', 2],
+    indent: ['off', 2],
     'dot-location': [2, 'property'],
     'comma-spacing': [1],
     'space-before-blocks': [2, 'always'], // 强制在块之前使用一致的空格
@@ -41,7 +41,7 @@ module.exports = {
     'vue/max-attributes-per-line': [
       0,
       {
-        singleline: 10,
+        singleline: 16,
         multiline: {
           max: 1,
           allowFirstLine: false

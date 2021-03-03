@@ -2,7 +2,7 @@
  * @Author: leslie
  * @Date: 2021-03-01 16:00:18
  * @LastEditors: leslie
- * @LastEditTime: 2021-03-01 16:56:03
+ * @LastEditTime: 2021-03-02 14:40:36
  * @Description: 请填写简介
 -->
 <template>
@@ -16,7 +16,12 @@
 </template>
 
 <script>
+import scan from '@/util/scan';
+import reply from '@/ipc/reply';
 export default {
+  created() {
+    reply(this);
+  },
   mounted() {
     // 处理文件拖拽
     this.$refs.app.ondragenter = event => {
@@ -29,8 +34,9 @@ export default {
     };
     this.$refs.app.ondrop = event => {
       event.preventDefault();
-      if (this.$route.meta.draggable && event.dataTransfer.files.length > 0) {
+      if (event.dataTransfer.files.length > 0) {
         console.log('event: ', event);
+        this.IPC_FOLDER_SCAN(event.dataTransfer.files[0].path);
       }
       this.isDraging = false;
     };
@@ -38,6 +44,21 @@ export default {
       event.preventDefault();
       this.isDraging = false;
     };
+  },
+  methods: {
+    /**
+     * ELECTRON IPC [ 发送扫描文件夹请求 ]
+     */
+    async IPC_FOLDER_SCAN(folderPath) {
+      const path = require('path');
+      console.log('folderPath: ', folderPath);
+      let files = await scan({
+        folderPath: folderPath,
+        // 忽略的文件夹
+        ignorePath: ['node_modules', 'dist', '.git'].map(e => path.sep + e)
+      });
+      console.log('files: ', files);
+    }
   }
 };
 </script>
