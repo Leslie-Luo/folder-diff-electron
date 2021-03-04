@@ -2,7 +2,7 @@
  * @Author: leslie
  * @Date: 2021-03-01 17:34:18
  * @LastEditors: leslie
- * @LastEditTime: 2021-03-03 13:18:12
+ * @LastEditTime: 2021-03-04 15:46:19
  * @Description: 请填写简介
  */
 import fs from 'fs';
@@ -76,25 +76,36 @@ ipcMain.on('IPC_FOLDER_SCAN_AGAINS', async (event, arg) => {
  * 渲染进程请求复制文件夹
  */
 ipcMain.on('IPC_FOLDER_COPY', async (event, arg) => {
-  console.log('event: ', event);
-  console.log('arg: ', arg);
   const { copiedPath, resultPath } = arg.data;
-  console.log('copiedPath: ', copiedPath);
-  console.log('resultPath: ', resultPath);
   fse
     .copy(copiedPath, resultPath)
     .then(() => {
       console.log('success!');
       // 重新扫描
       event.reply('IPC_FOLDER_SCAN_AGAIN');
-      event.returnValue = Notification.isSupported();
-      if (Notification.isSupported()) {
-        const notification = new Notification({
-          title: '同步拷贝成功',
-          body: copiedPath
-        });
-        notification.show();
-      }
+      event.reply('NOTICE', {
+        title: '同步拷贝成功',
+        body: copiedPath
+      });
+    })
+    .catch(err => {
+      console.error(err);
+    });
+});
+
+/**
+ * 渲染进程请求删除文件夹
+ */
+ipcMain.on('IPC_FOLDER_REMOVE', async (event, arg) => {
+  fse
+    .remove(arg)
+    .then(() => {
+      console.log('success!');
+      // 重新扫描
+      event.reply('IPC_FOLDER_SCAN_AGAIN');
+      event.reply('NOTICE', {
+        title: `删除成功:${arg}`
+      });
     })
     .catch(err => {
       console.error(err);

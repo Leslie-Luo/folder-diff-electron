@@ -2,7 +2,7 @@
  * @Author: leslie
  * @Date: 2021-03-02 14:16:30
  * @LastEditors: leslie
- * @LastEditTime: 2021-03-02 14:39:45
+ * @LastEditTime: 2021-03-04 14:57:32
  * @Description: 请填写简介
  */
 'use strict';
@@ -21,8 +21,8 @@ protocol.registerSchemesAsPrivileged([
 async function createWindow() {
   // Create the browser window.
   const win = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1100,
+    height: 650,
     webPreferences: {
       // Use pluginOptions.nodeIntegration, leave this alone
       // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration for more info

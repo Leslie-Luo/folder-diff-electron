@@ -2,13 +2,18 @@
  * @Author: leslie
  * @Date: 2021-03-02 14:31:11
  * @LastEditors: leslie
- * @LastEditTime: 2021-03-03 13:40:16
+ * @LastEditTime: 2021-03-04 15:31:29
  * @Description: 请填写简介
  */
 import { ipcRenderer } from 'electron';
 import store from '../store';
 
 export default function(instance) {
+  // 消息提示
+  ipcRenderer.on('NOTICE', (event, arg) => {
+    console.log('[ 消息提示 ]');
+    store.commit('IPC_NOTICE', arg);
+  });
   // 接收文件夹选择的结果
   ipcRenderer.on('IPC_FOLDER_SELECT_REPLY', (event, arg) => {
     console.log('arg: ', arg);

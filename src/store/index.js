@@ -2,7 +2,7 @@
  * @Author: leslie
  * @Date: 2021-03-01 17:46:53
  * @LastEditors: leslie
- * @LastEditTime: 2021-03-03 13:45:57
+ * @LastEditTime: 2021-03-04 16:10:17
  * @Description: 请填写简介
  */
 import Vue from 'vue';
@@ -13,6 +13,7 @@ import { cloneDeep } from 'lodash';
 import appInfo from '@root/package.json';
 import persistedState from 'vuex-persistedstate';
 import translateFlat from '@/util/translate.flat.js';
+import { message } from 'ant-design-vue';
 
 Vue.use(Vuex);
 
@@ -30,7 +31,7 @@ function showFilter(els) {
 }
 
 const stateDefault = {
-  SELECT: 'CACHE',
+  CONTENT_SPINNING: true,
   APP: {
     VERSION: appInfo.version
   },
@@ -94,6 +95,7 @@ export default new Vuex.Store({
   plugins: [persistedState()],
   state: cloneDeep(stateDefault),
   getters: {
+    CONTENT_SPINNING: state => state.CONTENT_SPINNING,
     VERSION: state => state.APP.VERSION,
     // 快速访问 CACHE
     SCAN_FOLDER_PATH: state => state.CACHE.SCAN_FOLDER_PATH,
@@ -121,10 +123,27 @@ export default new Vuex.Store({
   },
   mutations: {
     /**
+     * 数据更新 [ 切换Loading ]
+     */
+    CHANGE_CONTENT_SPINNING(state, data) {
+      console.log('[ 切换Loading ]');
+      state.CONTENT_SPINNING = data;
+    },
+    /**
+     * 数据更新 [ 消息提示 ]
+     */
+    IPC_NOTICE(state, data) {
+      console.log('[ 消息提示 ]');
+      message.warning({
+        content: data.title
+      });
+    },
+    /**
      * 数据更新 [ 重新扫描 ]
      */
     IPC_FOLDER_SCAN_AGAIN() {
       console.log('[ 重新扫描 ]');
+      this.commit('CHANGE_CONTENT_SPINNING', true);
       ipcRenderer.send('IPC_FOLDER_SCAN_AGAINS');
     },
     /**
@@ -220,6 +239,7 @@ export default new Vuex.Store({
       });
       console.log('a: ', a);
       console.log('b: ', b);
+      this.commit('CHANGE_CONTENT_SPINNING', false);
     },
     /**
      * ELECTRON IPC [ 通过文件选择窗口选择一个文件夹 ]
@@ -228,12 +248,18 @@ export default new Vuex.Store({
       ipcRenderer.send('IPC_FOLDER_SELECT', data);
     },
     /**
-     * ELECTRON IPC [ 复制文件夹 ]
+     * ELECTRON IPC [ 复制文件、文件夹 ]
      */
     IPC_FOLDER_COPY(state, data) {
-      console.log('state: ', state);
-      console.log('data: ', data);
       ipcRenderer.send('IPC_FOLDER_COPY', { data });
+      this.commit('CHANGE_CONTENT_SPINNING', true);
+    },
+    /**
+     * ELECTRON IPC [ 删除文文件、文件夹 ]
+     */
+    IPC_FOLDER_REMOVE(state, data) {
+      ipcRenderer.send('IPC_FOLDER_REMOVE', data);
+      this.commit('CHANGE_CONTENT_SPINNING', true);
     },
     /**
      * ELECTRON IPC [ 发送扫描文件夹请求 ]
