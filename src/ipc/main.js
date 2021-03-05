@@ -2,7 +2,7 @@
  * @Author: leslie
  * @Date: 2021-03-01 17:34:18
  * @LastEditors: leslie
- * @LastEditTime: 2021-03-05 10:12:44
+ * @LastEditTime: 2021-03-05 17:23:56
  * @Description: 请填写简介
  */
 import fs from 'fs';
@@ -81,8 +81,6 @@ ipcMain.on('IPC_FOLDER_COPY', async (event, arg) => {
     .copy(copiedPath, resultPath)
     .then(() => {
       console.log('success!');
-      // 开始扫描选中文件目录
-      event.reply('IPC_FOLDER_SCAN_ALL_START');
       event.reply('NOTICE', {
         title: '同步拷贝成功',
         body: copiedPath
@@ -94,6 +92,14 @@ ipcMain.on('IPC_FOLDER_COPY', async (event, arg) => {
 });
 
 /**
+ * 渲染进程请求修改文件内容
+ */
+ipcMain.on('IPC_CHANGE_FILE_CONTENT', async (event, { filePath, content }) => {
+  await fs.writeFileSync(filePath, new Uint8Array(Buffer.from(content)));
+  event.reply('IIPC_CHANGE_FILE_CONTENT_REPLY');
+});
+
+/**
  * 渲染进程请求删除文件夹
  */
 ipcMain.on('IPC_FOLDER_REMOVE', async (event, arg) => {
@@ -101,8 +107,6 @@ ipcMain.on('IPC_FOLDER_REMOVE', async (event, arg) => {
     .remove(arg)
     .then(() => {
       console.log('success!');
-      // 开始扫描选中文件目录
-      event.reply('IPC_FOLDER_SCAN_ALL_START');
       event.reply('NOTICE', {
         title: `删除成功:${arg}`
       });

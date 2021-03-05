@@ -2,7 +2,7 @@
  * @Author: leslie
  * @Date: 2021-03-01 17:46:53
  * @LastEditors: leslie
- * @LastEditTime: 2021-03-05 11:35:34
+ * @LastEditTime: 2021-03-05 17:39:33
  * @Description: 请填写简介
  */
 import Vue from 'vue';
@@ -33,10 +33,17 @@ function showFilter(els) {
 }
 
 const stateDefault = {
-  CONTENT_SPINNING: true,
-  CONTENT_SPINNING_TIP: '扫描中...',
+  CONTENT_SPINNING: false,
+  CONTENT_SPINNING_TIP: '',
   APP: {
     VERSION: appInfo.version
+  },
+  // 当前扫描的文件夹地址
+  SCAN_FOLDER_PATH: {
+    CACHE: '',
+    CACHE_WATCHER: '',
+    CACHES: '',
+    CACHES_WATCHER: ''
   },
   CACHE: {
     // 扫描的文件夹地址
@@ -93,20 +100,28 @@ const stateDefault = {
 };
 
 export default new Vuex.Store({
-  plugins: [persistedState()],
+  plugins: [
+    persistedState({
+      reducer(val) {
+        return {
+          SCAN_FOLDER_PATH: val.SCAN_FOLDER_PATH
+        };
+      }
+    })
+  ],
   state: cloneDeep(stateDefault),
   getters: {
     CONTENT_SPINNING: state => state.CONTENT_SPINNING,
     CONTENT_SPINNING_TIP: state => state.CONTENT_SPINNING_TIP,
     VERSION: state => state.APP.VERSION,
     // 快速访问 CACHE
-    SCAN_FOLDER_PATH: state => state.CACHE.SCAN_FOLDER_PATH,
+    SCAN_FOLDER_PATH: state => state.SCAN_FOLDER_PATH.CACHE,
     SCAN_RESULT: state => state.CACHE.SCAN_RESULT,
     SCAN_RESULT_FLAT: state => state.CACHE.SCAN_RESULT_FLAT,
     SCAN_RESULT_FLAT_NOTE_NUM: state =>
       state.CACHE.SCAN_RESULT_FLAT.filter(e => e.note).length,
     // 快速访问 CACHES
-    SCAN_FOLDER_PATHS: state => state.CACHES.SCAN_FOLDER_PATH,
+    SCAN_FOLDER_PATHS: state => state.SCAN_FOLDER_PATH.CACHES,
     SCAN_RESULTS: state => state.CACHES.SCAN_RESULT,
     SCAN_RESULT_FLATS: state => state.CACHES.SCAN_RESULT_FLAT,
     SCAN_RESULT_FLAT_NOTE_NUMS: state =>
@@ -128,7 +143,7 @@ export default new Vuex.Store({
     CHANGE_CONTENT_SPINNING(state, data) {
       console.log('[ 切换Loading ]');
       state.CONTENT_SPINNING = data;
-      state.CONTENT_SPINNING_TIP = '扫描中...';
+      state.CONTENT_SPINNING_TIP = '';
     },
     /**
      * 数据更新 [ 更新Loading提示文本 ]
@@ -142,7 +157,7 @@ export default new Vuex.Store({
      */
     IPC_NOTICE(state, data) {
       console.log('[ 消息提示 ]');
-      message.warning({
+      message.success({
         content: data.title
       });
     },
@@ -156,7 +171,7 @@ export default new Vuex.Store({
         'color: #bf2c9f; background: pink; font-size: 13px;'
       );
       console.log('data: ', data);
-      state[data.type].SCAN_FOLDER_PATH = data.filePath;
+      state.SCAN_FOLDER_PATH[data.type] = data.filePath;
       console.log(
         '%c [ ====== 数据更新 [ 目标文件夹地址 ] END ====== ]: ',
         'color: #bf2c9f; background: pink; font-size: 13px;'
@@ -179,12 +194,12 @@ export default new Vuex.Store({
       this.commit('SCAN_RESULT_FLAT_REFRESH', data.type);
     },
     /**
-     * [ 开始扫描选中文件目录 ]
+     * [ 开始扫描选中目录 ]
      */
     IPC_FOLDER_SCAN_ALL_START() {
-      console.log('[ 开始扫描选中文件目录 ]');
+      console.log('[ 开始扫描选中目录 ]');
       this.commit('CHANGE_CONTENT_SPINNING', true);
-      this.commit('CHANGE_CONTENT_SPINNING_TIP', '开始扫描选中文件目录');
+      this.commit('CHANGE_CONTENT_SPINNING_TIP', '开始扫描选中目录');
       ipcRenderer.send('IPC_FOLDER_SCAN_ALL_START_SEND');
     },
     /**
@@ -192,7 +207,6 @@ export default new Vuex.Store({
      * 应该在每次刷新 SCAN_RESULT 之后自动调用
      */
     SCAN_RESULT_FLAT_REFRESH(state, type) {
-      console.log('type: ', type);
       state[type].SCAN_RESULT_FLAT = translateFlat({
         data: showFilter(state[type].SCAN_RESULT),
         notes: state.DB.NOTES
@@ -212,7 +226,9 @@ export default new Vuex.Store({
         );
         this.commit('CHANGE_CONTENT_SPINNING_TIP', '目录二扫描结束');
         this.commit('CHANGE_CONTENT_SPINNING_TIP', '开始对比扫描结果差异');
-        this.commit('DIFF_SCAN_RESULT_FLAT_REFRESH');
+        setTimeout(() => {
+          this.commit('DIFF_SCAN_RESULT_FLAT_REFRESH');
+        }, 300);
       }
     },
     /**
@@ -224,9 +240,9 @@ export default new Vuex.Store({
         'color: #fff; background: #1890ff; font-size: 13px;'
       );
       // 目录一地址
-      let SCAN_FOLDER_PATH = state.CACHE.SCAN_FOLDER_PATH;
+      let SCAN_FOLDER_PATH = state.SCAN_FOLDER_PATH.CACHE;
       // 目录二地址
-      let SCAN_FOLDER_PATHS = state.CACHES.SCAN_FOLDER_PATH;
+      let SCAN_FOLDER_PATHS = state.SCAN_FOLDER_PATH.CACHES;
       let SCAN_RESULT_FLAT = state.CACHE.SCAN_RESULT_FLAT;
       let SCAN_RESULT_FLATS = state.CACHES.SCAN_RESULT_FLAT;
       let FilePath = [];
@@ -279,7 +295,6 @@ export default new Vuex.Store({
             'utf8'
           );
           let jsDiffs = jsDiff.diffLines(FILE_RESULT, FILE_RESULTS);
-          console.log('jsDiffs: ', jsDiffs);
           if (jsDiffs.length > 1) {
             item.diff_file = true;
           } else if (jsDiffs[0].added || jsDiffs[0].removed) {
@@ -315,14 +330,12 @@ export default new Vuex.Store({
      */
     IPC_FOLDER_COPY(state, data) {
       ipcRenderer.send('IPC_FOLDER_COPY', { data });
-      this.commit('CHANGE_CONTENT_SPINNING', true);
     },
     /**
      * ELECTRON IPC [ 删除文文件、文件夹 ]
      */
     IPC_FOLDER_REMOVE(state, data) {
       ipcRenderer.send('IPC_FOLDER_REMOVE', data);
-      this.commit('CHANGE_CONTENT_SPINNING', true);
     },
     /**
      * ELECTRON IPC [ 发送扫描文件夹请求 ]
@@ -331,7 +344,7 @@ export default new Vuex.Store({
       console.log('data: ', data);
       console.log('state.SETTING.SCAN.IGNORE_EXT: ', state.SETTING.SCAN);
       ipcRenderer.send('IPC_FOLDER_SCAN', {
-        folderPath: state[data].SCAN_FOLDER_PATH,
+        folderPath: state.SCAN_FOLDER_PATH[data],
         ignorePath: state.SETTING.SCAN.IGNORE_PATH,
         ignoreExt: state.SETTING.SCAN.IGNORE_EXT,
         ignoreFile: state.SETTING.SCAN.IGNORE_FILE,
@@ -339,6 +352,15 @@ export default new Vuex.Store({
         ignoreDotStartFolder: state.SETTING.SCAN.IGNORE_DOT_START_FOLDER,
         deep: state.SETTING.SCAN.DEEP,
         type: data
+      });
+    },
+    /**
+     * ELECTRON IPC [ 导出文件 ]
+     */
+    IPC_CHANGE_FILE_CONTENT(state, { filePath, content }) {
+      ipcRenderer.send('IPC_CHANGE_FILE_CONTENT', {
+        filePath,
+        content
       });
     }
   },

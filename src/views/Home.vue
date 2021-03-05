@@ -2,25 +2,27 @@
  * @Author: leslie
  * @Date: 2021-03-01 17:21:52
  * @LastEditors: leslie
- * @LastEditTime: 2021-03-05 10:32:34
+ * @LastEditTime: 2021-03-05 17:21:57
  * @Description: 请填写简介
 -->
 <template>
   <a-layout>
     <a-layout-header class="header">
       <a-input v-model="SCAN_FOLDER_PATH" placeholder="请输入内容" disabled>
-        <span slot="addonBefore" class="scan" @click="tapScan('CACHE')">
-          <a-icon type="setting"></a-icon>选择文件目录
+        <span slot="addonBefore" class="folder" @click="tapScan('CACHE')">
+          <a-icon type="folder-open"></a-icon>
+          <span class="select-folder">选择文件目录</span>
         </span>
       </a-input>
       <a-input v-model="SCAN_FOLDER_PATHS" placeholder="请输入内容" disabled>
-        <span slot="addonBefore" class="scan" @click="tapScan('CACHES')">
-          <a-icon type="setting"></a-icon>选择文件目录
+        <span slot="addonBefore" class="folder" @click="tapScan('CACHES')">
+          <a-icon type="folder-open"></a-icon>
+          <span class="select-folder">选择文件目录</span>
         </span>
       </a-input>
       <div class="scan">
         <a-button type="primary" block @click="tapScanAgain">
-          开始扫描选中文件目录
+          开始扫描选中目录
         </a-button>
         <div v-if="DIFF_ALL.length > 1" class="diff-nums">
           总差异文件{{ DIFF_ALL.length }}
@@ -29,7 +31,11 @@
       <DiffPreview ref="diffPreview" :diff-file-info="diffFileInfo" />
     </a-layout-header>
     <a-layout-content class="content">
-      <a-spin :spinning="CONTENT_SPINNING" :tip="CONTENT_SPINNING_TIP">
+      <a-spin
+        size="large"
+        :spinning="CONTENT_SPINNING"
+        :tip="CONTENT_SPINNING_TIP"
+      >
         <div class="flex">
           <div class="flex-content">
             <FileListingPage
@@ -58,6 +64,7 @@
 import FileListingPage from '@/components/FileListingPage.vue';
 import DiffPreview from '@/components/DiffPreview.vue';
 import { mapGetters, mapMutations } from 'vuex';
+import { throttle } from 'lodash';
 export default {
   name: 'Home',
   components: {
@@ -66,6 +73,7 @@ export default {
   },
   data() {
     return {
+      Refresh: false,
       diffFileInfo: {
         ext: '',
         filePath: '',
@@ -85,17 +93,14 @@ export default {
       'SCAN_RESULT_FLATS'
     ])
   },
-  created() {
-    // this.tapScanAgain();
-  },
   methods: {
     ...mapMutations(['IPC_FOLDER_SELECT', 'IPC_FOLDER_SCAN_ALL_START']),
     tapScan(type) {
       this.IPC_FOLDER_SELECT(type);
     },
-    tapScanAgain() {
+    tapScanAgain: throttle(function() {
       this.IPC_FOLDER_SCAN_ALL_START();
-    },
+    }, 5000),
     startDiffPreview(e) {
       this.diffFileInfo = e;
       this.$nextTick(() => {
@@ -128,9 +133,20 @@ export default {
 }
 
 .content {
-  height: calc(100vh - 150px);
+  min-height: calc(100vh - 150px);
   margin-top: 150px;
-  overflow-y: auto;
+}
+
+.folder {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+
+  .select-folder {
+    margin-left: 5px;
+    font-size: 14px;
+    font-weight: 500;
+  }
 }
 
 .scan {
@@ -150,6 +166,7 @@ export default {
   position: relative;
   display: flex;
   flex: 1;
+  min-height: calc(100vh - 150px);
 
   .flex-content {
     flex: 1;

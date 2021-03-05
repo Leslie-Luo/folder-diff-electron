@@ -2,13 +2,13 @@
  * @Author: leslie
  * @Date: 2021-03-01 18:10:42
  * @LastEditors: leslie
- * @LastEditTime: 2021-03-05 11:40:21
+ * @LastEditTime: 2021-03-05 14:51:53
  * @Description: 请填写简介
 -->
 <template>
   <div class="reader">
-    <div class="reader-info">{{ info || path }}</div>
-    <div class="list">
+    <div v-if="path" class="reader-info">{{ info || path }}</div>
+    <div v-if="!CONTENT_SPINNING" class="list">
       <template v-for="(item, index) in data">
         <div
           :key="index"
@@ -62,7 +62,7 @@
 </template>
 
 <script>
-import { mapMutations } from 'vuex';
+import { mapGetters, mapMutations } from 'vuex';
 export default {
   name: 'FileListingPage',
   props: {
@@ -85,6 +85,9 @@ export default {
     return {
       info: ''
     };
+  },
+  computed: {
+    ...mapGetters(['CONTENT_SPINNING'])
   },
   methods: {
     ...mapMutations(['IPC_FOLDER_COPY', 'IPC_FOLDER_REMOVE']),
@@ -186,10 +189,12 @@ export default {
 
       .row-info-name {
         color: #303133;
+        cursor: pointer;
       }
 
       .row-info-ext {
         color: #909399;
+        cursor: pointer;
       }
 
       .row-info-sizes {

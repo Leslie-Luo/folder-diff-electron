@@ -2,7 +2,7 @@
  * @Author: leslie
  * @Date: 2021-03-02 14:31:11
  * @LastEditors: leslie
- * @LastEditTime: 2021-03-05 10:00:59
+ * @LastEditTime: 2021-03-05 15:16:21
  * @Description: 请填写简介
  */
 import { ipcRenderer } from 'electron';
@@ -19,7 +19,7 @@ export default function(instance) {
     console.log('接收文件夹选择的结果: ', arg);
     store.commit('SCAN_FOLDER_PATH_UPDATE', arg);
   });
-  // 开始扫描选中文件目录
+  // 开始扫描选中目录
   ipcRenderer.on('IPC_FOLDER_SCAN_ALL_START', event => {
     console.log(
       '%c [ 开始扫描目录一 ]',
@@ -36,5 +36,9 @@ export default function(instance) {
   // 接收导出文件的返回结果
   ipcRenderer.on('IPC_EXPORT_REPLY', (event, arg) => {
     instance.$message.success('内容已经导出');
+  });
+  // 接收修改文件内容的返回结果
+  ipcRenderer.on('IIPC_CHANGE_FILE_CONTENT_REPLY', (event, arg) => {
+    instance.$message.success('内容已经修改');
   });
 }
