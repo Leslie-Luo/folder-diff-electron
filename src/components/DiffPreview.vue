@@ -2,7 +2,7 @@
  * @Author: leslie
  * @Date: 2021-03-03 18:03:25
  * @LastEditors: leslie
- * @LastEditTime: 2021-03-04 12:32:32
+ * @LastEditTime: 2021-03-05 11:50:23
  * @Description: 请填写简介
 -->
 <template>
@@ -33,7 +33,7 @@ import 'codemirror/mode/markdown/markdown.js';
 import 'codemirror/mode/javascript/javascript.js';
 import 'codemirror/mode/htmlmixed/htmlmixed.js';
 // import theme style
-import 'codemirror/theme/base16-dark.css';
+import 'codemirror/theme/base16-light.css';
 // merge js
 import 'codemirror/addon/merge/merge.js';
 
@@ -49,7 +49,6 @@ window.DIFF_DELETE = -1;
 window.DIFF_INSERT = 1;
 window.DIFF_EQUAL = 0;
 import fs from 'fs';
-console.log('fs: ', fs);
 
 export default {
   name: 'CodePreview',
@@ -78,7 +77,7 @@ export default {
         orig: '',
         tabSize: 2,
         mode: 'text/html',
-        theme: 'base16-dark',
+        theme: 'base16-light',
         lineNumbers: true,
         collapseIdentical: false,
         highlightDifferences: true

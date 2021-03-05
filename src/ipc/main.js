@@ -2,7 +2,7 @@
  * @Author: leslie
  * @Date: 2021-03-01 17:34:18
  * @LastEditors: leslie
- * @LastEditTime: 2021-03-04 15:46:19
+ * @LastEditTime: 2021-03-05 10:12:44
  * @Description: 请填写简介
  */
 import fs from 'fs';
@@ -14,7 +14,7 @@ const fse = require('fs-extra');
  * 渲染进程请求选择扫描的文件夹
  */
 ipcMain.on('IPC_FOLDER_SELECT', async (event, arg) => {
-  console.log('arg: ', arg);
+  console.log('渲染进程请求选择扫描的文件夹: ', arg);
   const window = BrowserWindow.getFocusedWindow();
   const result = await dialog.showOpenDialog(window, {
     properties: ['openDirectory', 'createDirectory']
@@ -66,10 +66,10 @@ ipcMain.on('IPC_FOLDER_SCAN', async (event, arg) => {
 });
 
 /**
- * 渲染进程请求复制文件夹
+ * 渲染进程开始扫描选中目录
  */
-ipcMain.on('IPC_FOLDER_SCAN_AGAINS', async (event, arg) => {
-  event.reply('IPC_FOLDER_SCAN_AGAIN');
+ipcMain.on('IPC_FOLDER_SCAN_ALL_START_SEND', async (event, arg) => {
+  event.reply('IPC_FOLDER_SCAN_ALL_START');
 });
 
 /**
@@ -81,8 +81,8 @@ ipcMain.on('IPC_FOLDER_COPY', async (event, arg) => {
     .copy(copiedPath, resultPath)
     .then(() => {
       console.log('success!');
-      // 重新扫描
-      event.reply('IPC_FOLDER_SCAN_AGAIN');
+      // 开始扫描选中文件目录
+      event.reply('IPC_FOLDER_SCAN_ALL_START');
       event.reply('NOTICE', {
         title: '同步拷贝成功',
         body: copiedPath
@@ -101,8 +101,8 @@ ipcMain.on('IPC_FOLDER_REMOVE', async (event, arg) => {
     .remove(arg)
     .then(() => {
       console.log('success!');
-      // 重新扫描
-      event.reply('IPC_FOLDER_SCAN_AGAIN');
+      // 开始扫描选中文件目录
+      event.reply('IPC_FOLDER_SCAN_ALL_START');
       event.reply('NOTICE', {
         title: `删除成功:${arg}`
       });

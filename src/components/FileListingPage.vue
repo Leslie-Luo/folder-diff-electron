@@ -2,7 +2,7 @@
  * @Author: leslie
  * @Date: 2021-03-01 18:10:42
  * @LastEditors: leslie
- * @LastEditTime: 2021-03-04 16:14:55
+ * @LastEditTime: 2021-03-05 11:40:21
  * @Description: 请填写简介
 -->
 <template>
@@ -21,7 +21,10 @@
             <pre>{{ item.tree }}</pre>
           </span>
           <!-- 文件信息 -->
-          <span class="row-info" :class="{ diff: item.diff_missing }">
+          <span
+            class="row-info"
+            :class="{ diff: item.diff_missing, 'diff-result': item.diff_file }"
+          >
             <!-- 文件名 -->
             <pre class="row-info-name">{{ item.name }}</pre>
             <!-- 扩展名 -->
@@ -206,6 +209,20 @@ export default {
 
       .row-info-sizes {
         color: red;
+      }
+    }
+
+    .diff-result {
+      .row-info-name {
+        color: #7b91ff;
+      }
+
+      .row-info-ext {
+        color: #7b91ff;
+      }
+
+      .row-info-sizes {
+        color: #7b91ff;
       }
     }
 

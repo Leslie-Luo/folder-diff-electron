@@ -2,12 +2,14 @@
  * @Author: leslie
  * @Date: 2021-03-01 17:46:53
  * @LastEditors: leslie
- * @LastEditTime: 2021-03-04 16:10:17
+ * @LastEditTime: 2021-03-05 11:35:34
  * @Description: 请填写简介
  */
 import Vue from 'vue';
 import Vuex from 'vuex';
 import path from 'path';
+import fs from 'fs';
+const jsDiff = require('diff');
 import { ipcRenderer } from 'electron';
 import { cloneDeep } from 'lodash';
 import appInfo from '@root/package.json';
@@ -32,6 +34,7 @@ function showFilter(els) {
 
 const stateDefault = {
   CONTENT_SPINNING: true,
+  CONTENT_SPINNING_TIP: '扫描中...',
   APP: {
     VERSION: appInfo.version
   },
@@ -41,8 +44,7 @@ const stateDefault = {
     // 扫描结果
     SCAN_RESULT: [],
     // 扫描结果 扁平化
-    SCAN_RESULT_FLAT: [],
-    DIFF_SCAN_RESULT_FLAT: []
+    SCAN_RESULT_FLAT: []
   },
   CACHES: {
     // 扫描的文件夹地址
@@ -50,8 +52,7 @@ const stateDefault = {
     // 扫描结果
     SCAN_RESULT: [],
     // 扫描结果 扁平化
-    SCAN_RESULT_FLAT: [],
-    DIFF_SCAN_RESULT_FLAT: []
+    SCAN_RESULT_FLAT: []
   },
   // 差异文件
   DIFF_A: [],
@@ -78,7 +79,7 @@ const stateDefault = {
       // 忽略的文件夹
       IGNORE_PATH: ['node_modules', 'dist', '.git'].map(e => path.sep + e),
       // 忽略的文件类型
-      IGNORE_EXT: [],
+      IGNORE_EXT: ['.lock'],
       // 忽略文件
       IGNORE_FILE: false,
       // 忽略点开头的文件
@@ -96,6 +97,7 @@ export default new Vuex.Store({
   state: cloneDeep(stateDefault),
   getters: {
     CONTENT_SPINNING: state => state.CONTENT_SPINNING,
+    CONTENT_SPINNING_TIP: state => state.CONTENT_SPINNING_TIP,
     VERSION: state => state.APP.VERSION,
     // 快速访问 CACHE
     SCAN_FOLDER_PATH: state => state.CACHE.SCAN_FOLDER_PATH,
@@ -103,14 +105,12 @@ export default new Vuex.Store({
     SCAN_RESULT_FLAT: state => state.CACHE.SCAN_RESULT_FLAT,
     SCAN_RESULT_FLAT_NOTE_NUM: state =>
       state.CACHE.SCAN_RESULT_FLAT.filter(e => e.note).length,
-    DIFF_SCAN_RESULT_FLAT: state => state.CACHE.DIFF_SCAN_RESULT_FLAT,
     // 快速访问 CACHES
     SCAN_FOLDER_PATHS: state => state.CACHES.SCAN_FOLDER_PATH,
     SCAN_RESULTS: state => state.CACHES.SCAN_RESULT,
     SCAN_RESULT_FLATS: state => state.CACHES.SCAN_RESULT_FLAT,
     SCAN_RESULT_FLAT_NOTE_NUMS: state =>
       state.CACHES.SCAN_RESULT_FLAT.filter(e => e.note).length,
-    DIFF_SCAN_RESULT_FLATS: state => state.CACHES.DIFF_SCAN_RESULT_FLAT,
     /**
      * 当前是否有扫描结果
      */
@@ -128,6 +128,14 @@ export default new Vuex.Store({
     CHANGE_CONTENT_SPINNING(state, data) {
       console.log('[ 切换Loading ]');
       state.CONTENT_SPINNING = data;
+      state.CONTENT_SPINNING_TIP = '扫描中...';
+    },
+    /**
+     * 数据更新 [ 更新Loading提示文本 ]
+     */
+    CHANGE_CONTENT_SPINNING_TIP(state, data) {
+      console.log('[ 更新Loading提示文本 ]', data);
+      state.CONTENT_SPINNING_TIP = data;
     },
     /**
      * 数据更新 [ 消息提示 ]
@@ -139,19 +147,20 @@ export default new Vuex.Store({
       });
     },
     /**
-     * 数据更新 [ 重新扫描 ]
-     */
-    IPC_FOLDER_SCAN_AGAIN() {
-      console.log('[ 重新扫描 ]');
-      this.commit('CHANGE_CONTENT_SPINNING', true);
-      ipcRenderer.send('IPC_FOLDER_SCAN_AGAINS');
-    },
-    /**
      * 数据更新 [ 目标文件夹地址 ]
+     *
      */
     SCAN_FOLDER_PATH_UPDATE(state, data) {
+      console.log(
+        '%c [ ====== 数据更新 [ 目标文件夹地址 ] ====== ]: ',
+        'color: #bf2c9f; background: pink; font-size: 13px;'
+      );
       console.log('data: ', data);
       state[data.type].SCAN_FOLDER_PATH = data.filePath;
+      console.log(
+        '%c [ ====== 数据更新 [ 目标文件夹地址 ] END ====== ]: ',
+        'color: #bf2c9f; background: pink; font-size: 13px;'
+      );
     },
     /**
      * 数据更新 [ 扫描结果 ]
@@ -170,6 +179,15 @@ export default new Vuex.Store({
       this.commit('SCAN_RESULT_FLAT_REFRESH', data.type);
     },
     /**
+     * [ 开始扫描选中文件目录 ]
+     */
+    IPC_FOLDER_SCAN_ALL_START() {
+      console.log('[ 开始扫描选中文件目录 ]');
+      this.commit('CHANGE_CONTENT_SPINNING', true);
+      this.commit('CHANGE_CONTENT_SPINNING_TIP', '开始扫描选中文件目录');
+      ipcRenderer.send('IPC_FOLDER_SCAN_ALL_START_SEND');
+    },
+    /**
      * 数据更新 根据 SCAN_RESULT 刷新 SCAN_RESULT_FLAT
      * 应该在每次刷新 SCAN_RESULT 之后自动调用
      */
@@ -179,17 +197,38 @@ export default new Vuex.Store({
         data: showFilter(state[type].SCAN_RESULT),
         notes: state.DB.NOTES
       });
-      this.commit('DIFF_SCAN_RESULT_FLAT_REFRESH');
+      if (type === 'CACHE') {
+        console.log(
+          '%c [ 目录一扫描结束，开始扫描目录二 ]',
+          'color: #fff; background: #1890ff; font-size: 13px;'
+        );
+        this.commit('CHANGE_CONTENT_SPINNING_TIP', '目录一扫描结束');
+        this.commit('CHANGE_CONTENT_SPINNING_TIP', '开始扫描目录二');
+        this.commit('IPC_FOLDER_SCAN', 'CACHES');
+      } else {
+        console.log(
+          '%c [ 目录二扫描结束，开始对比扫描结果差异 ]',
+          'color: #fff; background: #1890ff; font-size: 13px;'
+        );
+        this.commit('CHANGE_CONTENT_SPINNING_TIP', '目录二扫描结束');
+        this.commit('CHANGE_CONTENT_SPINNING_TIP', '开始对比扫描结果差异');
+        this.commit('DIFF_SCAN_RESULT_FLAT_REFRESH');
+      }
     },
     /**
      * 对比扫描结果差异
      */
     DIFF_SCAN_RESULT_FLAT_REFRESH(state) {
-      console.log('文件差异对比');
+      console.log(
+        '%c [ 开始对比扫描结果差异 ]',
+        'color: #fff; background: #1890ff; font-size: 13px;'
+      );
+      // 目录一地址
+      let SCAN_FOLDER_PATH = state.CACHE.SCAN_FOLDER_PATH;
+      // 目录二地址
+      let SCAN_FOLDER_PATHS = state.CACHES.SCAN_FOLDER_PATH;
       let SCAN_RESULT_FLAT = state.CACHE.SCAN_RESULT_FLAT;
-      state.CACHE.DIFF_SCAN_RESULT_FLAT = state.CACHE.SCAN_RESULT_FLAT;
       let SCAN_RESULT_FLATS = state.CACHES.SCAN_RESULT_FLAT;
-      state.CACHES.DIFF_SCAN_RESULT_FLAT = state.CACHES.SCAN_RESULT_FLAT;
       let FilePath = [];
       SCAN_RESULT_FLAT.forEach(element => {
         FilePath.push(element.filePath);
@@ -207,39 +246,63 @@ export default new Vuex.Store({
       state.DIFF_A = diffA;
       state.DIFF_B = diffB;
       state.DIFF_ALL = [...diffA, ...diffB];
-      let a = [];
       diffA.map(itemA => {
         SCAN_RESULT_FLAT.map((itemB, index) => {
           if (itemB.filePath === itemA) {
-            state.CACHE.DIFF_SCAN_RESULT_FLAT[index].diff_missing = true;
-            let obj = {
-              key: index,
-              value: itemB
-            };
-            a.push(obj);
+            state.CACHE.SCAN_RESULT_FLAT[index].diff_missing = true;
           }
           return itemB;
         });
         return itemA;
       });
-      let b = [];
       diffB.map(itemA => {
         SCAN_RESULT_FLATS.map((itemB, index) => {
           if (itemB.filePath === itemA) {
-            state.CACHES.DIFF_SCAN_RESULT_FLAT[index].diff_missing = true;
-            let obj = {
-              key: index,
-              value: itemB
-            };
-            b.push(obj);
+            state.CACHES.SCAN_RESULT_FLAT[index].diff_missing = true;
           }
           return itemB;
         });
         return itemA;
       });
-      console.log('a: ', a);
-      console.log('b: ', b);
+      state.CACHE.SCAN_RESULT_FLAT = state.CACHE.SCAN_RESULT_FLAT.map(item => {
+        if (!item.diff_missing && item.isFile) {
+          this.commit(
+            'CHANGE_CONTENT_SPINNING_TIP',
+            `正在对比${item.filePath}`
+          );
+          let FILE_RESULT = fs.readFileSync(
+            `${SCAN_FOLDER_PATH}${item.filePath}`,
+            'utf8'
+          );
+          let FILE_RESULTS = fs.readFileSync(
+            `${SCAN_FOLDER_PATHS}${item.filePath}`,
+            'utf8'
+          );
+          let jsDiffs = jsDiff.diffLines(FILE_RESULT, FILE_RESULTS);
+          console.log('jsDiffs: ', jsDiffs);
+          if (jsDiffs.length > 1) {
+            item.diff_file = true;
+          } else if (jsDiffs[0].added || jsDiffs[0].removed) {
+            item.diff_file = true;
+          }
+        }
+        return item;
+      });
+      state.CACHE.SCAN_RESULT_FLAT.map(itemA => {
+        state.CACHES.SCAN_RESULT_FLAT.map((itemB, index) => {
+          if (itemB.filePath === itemA.filePath && itemA.diff_file) {
+            state.CACHES.SCAN_RESULT_FLAT[index].diff_file = true;
+          }
+          return itemB;
+        });
+        return itemA;
+      });
+      this.commit('CHANGE_CONTENT_SPINNING_TIP', '对比扫描结果差异结束');
       this.commit('CHANGE_CONTENT_SPINNING', false);
+      console.log(
+        '%c [ 对比扫描结果差异结束 ]',
+        'color: #fff; background: #1890ff; font-size: 13px;'
+      );
     },
     /**
      * ELECTRON IPC [ 通过文件选择窗口选择一个文件夹 ]
@@ -266,6 +329,7 @@ export default new Vuex.Store({
      */
     IPC_FOLDER_SCAN(state, data) {
       console.log('data: ', data);
+      console.log('state.SETTING.SCAN.IGNORE_EXT: ', state.SETTING.SCAN);
       ipcRenderer.send('IPC_FOLDER_SCAN', {
         folderPath: state[data].SCAN_FOLDER_PATH,
         ignorePath: state.SETTING.SCAN.IGNORE_PATH,

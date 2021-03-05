@@ -2,7 +2,7 @@
  * @Author: leslie
  * @Date: 2021-03-01 17:21:52
  * @LastEditors: leslie
- * @LastEditTime: 2021-03-04 16:11:47
+ * @LastEditTime: 2021-03-05 10:32:34
  * @Description: 请填写简介
 -->
 <template>
@@ -18,18 +18,22 @@
           <a-icon type="setting"></a-icon>选择文件目录
         </span>
       </a-input>
-      <a-button type="primary" @click="tapScanAgain">
-        重新扫描
-      </a-button>
-      <div class="diff-nums">总差异文件{{ DIFF_ALL.length }}</div>
+      <div class="scan">
+        <a-button type="primary" block @click="tapScanAgain">
+          开始扫描选中文件目录
+        </a-button>
+        <div v-if="DIFF_ALL.length > 1" class="diff-nums">
+          总差异文件{{ DIFF_ALL.length }}
+        </div>
+      </div>
       <DiffPreview ref="diffPreview" :diff-file-info="diffFileInfo" />
     </a-layout-header>
-    <a-layout-content :style="{ marginTop: '150px' }">
-      <a-spin :spinning="CONTENT_SPINNING">
+    <a-layout-content class="content">
+      <a-spin :spinning="CONTENT_SPINNING" :tip="CONTENT_SPINNING_TIP">
         <div class="flex">
           <div class="flex-content">
             <FileListingPage
-              :data="DIFF_SCAN_RESULT_FLAT"
+              :data="SCAN_RESULT_FLAT"
               :path="SCAN_FOLDER_PATH"
               :other-path="SCAN_FOLDER_PATHS"
               @tap="startDiffPreview"
@@ -37,7 +41,7 @@
           </div>
           <div class="flex-content">
             <FileListingPage
-              :data="DIFF_SCAN_RESULT_FLATS"
+              :data="SCAN_RESULT_FLATS"
               :path="SCAN_FOLDER_PATHS"
               :other-path="SCAN_FOLDER_PATH"
               @tap="startDiffPreview"
@@ -46,9 +50,6 @@
         </div>
       </a-spin>
     </a-layout-content>
-    <a-layout-footer :style="{ textAlign: 'center' }">
-      Created by Leslie
-    </a-layout-footer>
   </a-layout>
 </template>
 
@@ -77,26 +78,23 @@ export default {
     ...mapGetters([
       'DIFF_ALL',
       'CONTENT_SPINNING',
+      'CONTENT_SPINNING_TIP',
       'SCAN_FOLDER_PATH',
-      'DIFF_SCAN_RESULT_FLAT',
+      'SCAN_RESULT_FLAT',
       'SCAN_FOLDER_PATHS',
-      'DIFF_SCAN_RESULT_FLATS'
+      'SCAN_RESULT_FLATS'
     ])
   },
   created() {
-    this.tapScanAgain();
+    // this.tapScanAgain();
   },
   methods: {
-    ...mapMutations([
-      'IPC_FOLDER_SCAN_AGAIN',
-      'IPC_FOLDER_SCAN',
-      'IPC_FOLDER_SELECT'
-    ]),
+    ...mapMutations(['IPC_FOLDER_SELECT', 'IPC_FOLDER_SCAN_ALL_START']),
     tapScan(type) {
       this.IPC_FOLDER_SELECT(type);
     },
     tapScanAgain() {
-      this.IPC_FOLDER_SCAN_AGAIN();
+      this.IPC_FOLDER_SCAN_ALL_START();
     },
     startDiffPreview(e) {
       this.diffFileInfo = e;
@@ -119,22 +117,33 @@ export default {
 .header {
   position: fixed;
   z-index: 1;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   justify-content: space-around;
   width: 100%;
   height: 150px;
+  padding: 0 50px;
   line-height: initial;
+}
+
+.content {
+  height: calc(100vh - 150px);
+  margin-top: 150px;
+  overflow-y: auto;
 }
 
 .scan {
-  cursor: pointer;
-}
+  display: flex;
+  align-items: center;
 
-.diff-nums {
-  font-size: 14px;
-  line-height: initial;
-  color: #fff;
+  .diff-nums {
+    width: 200px;
+    font-size: 14px;
+    line-height: initial;
+    color: #fff;
+    text-align: center;
+  }
 }
 
 .flex {
